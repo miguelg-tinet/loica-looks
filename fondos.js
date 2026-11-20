@@ -22,7 +22,6 @@
     alt           descripción de la imagen para lectores de pantalla
     firma         opcional: reemplaza la marca en la etiqueta de la tarjeta
     videollamada  opcional: reemplaza el rótulo "Videollamada con logo"
-    destacado     opcional: true en un solo fondo, el que abre la galería
 
   Los filtros salen solos de marca, coleccion, tecnica, temas y tono: una etiqueta nueva
   aparece como filtro apenas un fondo la usa. Conviene reutilizar las que ya existen,
@@ -298,7 +297,6 @@ window.FONDOS = [
     tecnica: "Tinta plana",
     temas: ["Aves", "Paisaje"],
     tono: "Claro",
-    destacado: true,
     texto: "Una loica planea sobre una llanura del secano chileno. Vista desde arriba, la hierba se convierte en un campo de tinta oliva. Las plumas abiertas y un destello rojo en el pecho dan la medida del vuelo.",
     alt: "Loica de alas extendidas sobre una llanura de pastos color oliva."
   },
