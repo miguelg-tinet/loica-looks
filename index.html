@@ -55,6 +55,24 @@ summary::marker{font-size:.8em}
 .files i{font-style:normal}
 .files a:hover,summary:hover{opacity:.8}
 a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid currentColor;outline-offset:3px}
+.ver{display:block;width:100%;cursor:zoom-in}
+.ver:hover .art{opacity:.92}
+
+/* Visor */
+.visor{border:0;padding:16px;margin:0;background:transparent;color:#faf8ed;width:100vw;height:100dvh;max-width:none;max-height:none;overflow:hidden}
+.visor[open]{display:grid;place-items:center}
+.visor::backdrop{background:#0f1c18e6}
+.visor figure{margin:0;display:grid;gap:16px;justify-items:center;max-width:100%}
+.visor img{display:block;width:auto;height:auto;max-width:min(100%,1440px);max-height:calc(100dvh - 170px);border-radius:20px;box-shadow:0 24px 80px #0009;background:#ffffff14}
+.visor figcaption{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 22px;text-align:center}
+.visor h2{font-size:clamp(26px,2.6vw,40px)}
+.visor small{font-size:.86rem;opacity:.75;font-variant-numeric:tabular-nums}
+.pasos{display:flex;gap:10px}
+.visor button{border:1px solid currentColor;border-radius:99px;padding:8px 18px;font-weight:550;line-height:1.3}
+.visor button:hover{background:#faf8ed;color:#19362f}
+.visor .sig{background:#faf8ed;color:#19362f}
+.visor .sig:hover{opacity:.85}
+.visor .cerrar{position:absolute;top:16px;right:16px;width:42px;height:42px;padding:0}
 .vacio{padding-block:40px 120px;font-size:1.1rem}
 
 @media(max-width:980px){
@@ -83,6 +101,21 @@ a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid cur
     <noscript><p class="vacio">La galería necesita JavaScript para mostrarse. Los archivos están en las carpetas Videollamadas y Escritorio del repositorio.</p></noscript>
   </div>
 </main>
+
+<dialog class="visor" id="visor" aria-labelledby="visor-titulo">
+  <button type="button" class="cerrar" id="visor-cerrar" aria-label="Cerrar">✕</button>
+  <figure>
+    <img id="visor-img" width="1440" height="810" alt="">
+    <figcaption>
+      <h2 id="visor-titulo"></h2>
+      <small id="visor-cuenta"></small>
+      <div class="pasos">
+        <button type="button" id="visor-ant">← Anterior</button>
+        <button type="button" class="sig" id="visor-sig">Siguiente →</button>
+      </div>
+    </figcaption>
+  </figure>
+</dialog>
 
 <script src="fondos.js"></script>
 <script>
@@ -192,7 +225,8 @@ a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid cur
     }));
   }
 
-  function tarjeta(f, primera) {
+  function tarjeta(f, i) {
+    var primera = i < 3;
     var enlaces = DESCARGAS.map(function (d) {
       var rotulo = (d.campo && f[d.campo]) || d.rotulo;
       return el("a", {
@@ -209,7 +243,9 @@ a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid cur
       });
     });
     return el("article", { class: "print" }, [
-      el("img", { class: "art", src: "Vistas/" + f.archivo + ".webp", width: "1440", height: "810", alt: f.alt || f.titulo, loading: primera ? "eager" : "lazy", decoding: "async" }),
+      el("button", { type: "button", class: "ver", "aria-label": "Ampliar " + f.titulo, on: { click: function () { abrir(i); } } }, [
+        el("img", { class: "art", src: "Vistas/" + f.archivo + ".webp", width: "1440", height: "810", alt: f.alt || f.titulo, loading: primera ? "eager" : "lazy", decoding: "async" })
+      ]),
       el("div", { class: "note" }, [
         el("span", { class: "brand", text: f.firma || f.marca }),
         el("h2", { text: f.titulo }),
@@ -223,7 +259,7 @@ a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid cur
   function pintar() {
     pintarFiltros();
     var activos = FACETAS.filter(function (fa) { return filtros[fa.id]; }).map(function (fa) { return filtros[fa.id]; });
-    var lista = coinciden();
+    var lista = visibles = coinciden();
 
     var estado = [el("strong", { text: lista.length + (lista.length === 1 ? " fondo" : " fondos") + (activos.length ? " · " + activos.join(" · ") : "") })];
     if (activos.length) {
@@ -233,9 +269,31 @@ a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid cur
     $estado.replaceChildren.apply($estado, estado);
 
     $galeria.replaceChildren(lista.length
-      ? el("div", { class: "prints" }, lista.map(function (f, i) { return tarjeta(f, i < 3); }))
+      ? el("div", { class: "prints" }, lista.map(function (f, i) { return tarjeta(f, i); }))
       : el("p", { class: "vacio", text: "No hay fondos con esa combinación de filtros." }));
   }
+
+  // Visor: amplía un fondo y permite recorrer los que están a la vista (respeta los filtros).
+  var visibles = [], pos = 0;
+  var $visor = document.getElementById("visor"), $vImg = document.getElementById("visor-img");
+  function mostrar(i) {
+    pos = (i + visibles.length) % visibles.length;
+    var f = visibles[pos];
+    $vImg.src = "Vistas/" + f.archivo + ".webp";
+    $vImg.alt = f.alt || f.titulo;
+    document.getElementById("visor-titulo").textContent = f.titulo;
+    document.getElementById("visor-cuenta").textContent = (pos + 1) + " de " + visibles.length;
+    new Image().src = "Vistas/" + visibles[(pos + 1) % visibles.length].archivo + ".webp";
+  }
+  function abrir(i) { mostrar(i); $visor.showModal(); document.getElementById("visor-sig").focus(); }
+  document.getElementById("visor-sig").addEventListener("click", function () { mostrar(pos + 1); });
+  document.getElementById("visor-ant").addEventListener("click", function () { mostrar(pos - 1); });
+  document.getElementById("visor-cerrar").addEventListener("click", function () { $visor.close(); });
+  $visor.addEventListener("click", function (e) { if (e.target === $visor) $visor.close(); });
+  $visor.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight") mostrar(pos + 1);
+    else if (e.key === "ArrowLeft") mostrar(pos - 1);
+  });
 
   window.addEventListener("hashchange", function () { leerHash(); pintar(); });
   leerHash();
