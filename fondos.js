@@ -10,6 +10,9 @@
   2. Agregar una entrada al comienzo de FONDOS (los primeros se muestran primero).
   3. git add, commit y push. No hay que tocar index.html.
 
+  Los fondos dibujados por código (colección Lugares de Tinet y Torres en dos tintas) tienen su
+  fuente en taller/escenas/. Para volver a imprimirlos: taller/generar.sh <archivo> publicar
+
   CAMPOS
     archivo       nombre de archivo, sin extensión
     titulo        nombre visible
@@ -29,6 +32,52 @@
 */
 
 window.FONDOS = [
+  // ── Lugares de Tinet ────────────────────────────────────────────────────────
+  {
+    archivo: "Bernarda-Morin-510",
+    titulo: "Bernarda Morín 510",
+    marca: "Tinet",
+    coleccion: "Lugares de Tinet",
+    tecnica: "Risografía",
+    temas: ["Ciudad"],
+    tono: "Claro",
+    texto: "La casona blanca de la esquina de Bernarda Morín, en Providencia, que fue oficina emblemática de Tinet. Con su palmera, la terraza techada, la reja de pilares y la solera amarilla.",
+    alt: "Impresión risográfica de una casona blanca de dos pisos en una esquina, con una palmera, terraza techada, reja de pilares blancos y un sol amarillo."
+  },
+  {
+    archivo: "Vina-del-Mar",
+    titulo: "Viña del Mar",
+    marca: "Tinet",
+    coleccion: "Lugares de Tinet",
+    tecnica: "Risografía",
+    temas: ["Mar y costa", "Ciudad"],
+    tono: "Claro",
+    texto: "El castillo Wulff sobre las rocas mientras el sol cae al Pacífico. El reflejo baja por el mar en trazos rojos y al fondo se encienden los cerros de Valparaíso.",
+    alt: "Impresión risográfica de un castillo de piedra con techos rojos sobre rocas oscuras, palmeras, y un sol rojo poniéndose en el mar."
+  },
+  {
+    archivo: "Chile-Chico",
+    titulo: "Chile Chico",
+    marca: "Tinet",
+    coleccion: "Lugares de Tinet",
+    tecnica: "Risografía",
+    temas: ["Paisaje"],
+    tono: "Claro",
+    texto: "La ciudad del sol a orillas del lago General Carrera: casas de techos de colores, hileras de álamos, la estepa con coirones y la cordillera nevada al fondo. En primer plano, una rama de cerezo.",
+    alt: "Impresión risográfica de un pueblo con álamos junto a un lago, cordillera nevada, un sol amarillo y una rama con cerezas en primer plano."
+  },
+  {
+    archivo: "Bahia-Inglesa",
+    titulo: "Bahía Inglesa",
+    marca: "Tinet",
+    coleccion: "Lugares de Tinet",
+    tecnica: "Risografía",
+    temas: ["Mar y costa", "Paisaje"],
+    tono: "Claro",
+    texto: "Arena blanca, roca volcánica y botes anclados en la bahía, con los cerros del desierto de Atacama al fondo y quitasoles en la playa.",
+    alt: "Impresión risográfica de una playa de arena clara con quitasoles, rocas oscuras y botes en una bahía, cerros anaranjados y un sol grande."
+  },
+
   // ── Oficio austral ──────────────────────────────────────────────────────────
   {
     archivo: "Bosque-a-lapiz",
@@ -337,6 +386,7 @@ window.FONDOS = [
 
 // Texto que se muestra al elegir un filtro. Opcional: una etiqueta sin texto funciona igual.
 window.ETIQUETAS = {
+  "Lugares de Tinet": "Cuarta colección. Lugares de Chile con historia de Tinet, impresos en tres tintas: azul, magenta y amarillo.",
   "Oficio austral": "Tercera colección. Nuevos motivos de 2026 en trazo ingenuo, oficio táctil, risografía y lámina técnica, en clave Loica y Tinet.",
   "Taller austral": "Segunda colección. Cuatro técnicas de ilustración de 2026, cada una en clave Loica y en clave Tinet.",
   "Atlas austral": "Primera colección. Paisajes y loicas del sur en planos de tinta.",

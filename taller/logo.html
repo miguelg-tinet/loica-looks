@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><style>html,body{margin:0}canvas{display:block}</style>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// Uso: logo.html?img=ruta.png  →  versión de videollamada: sobreimprime el logo de Tinet arriba a la izquierda.
+const g = document.getElementById('c').getContext('2d');
+const ld = s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = s });
+(async () => {
+  const fondo = await ld(new URLSearchParams(location.search).get('img')), logo = await ld('logo-tinet.png');
+  g.drawImage(fondo, 0, 0, 1920, 1080);
+  const X = 230, Y = 90, w = logo.width, h = logo.height, t = document.createElement('canvas'); t.width = w; t.height = h;
+  const tg = t.getContext('2d'); tg.drawImage(logo, 0, 0);
+  const od = tg.getImageData(0, 0, w, h).data, nd = g.getImageData(X, Y, w, h);
+  // El recorte del logo viene sobre papel: se divide por el color del papel y se multiplica sobre el fondo nuevo.
+  let s = [0, 0, 0], c = 0;
+  for (let x = 0; x < w; x++) for (const y of [0, 1, 2, h - 3, h - 2, h - 1]) { const j = (y * w + x) * 4; s[0] += od[j]; s[1] += od[j + 1]; s[2] += od[j + 2]; c++ }
+  s = s.map(v => v / c);
+  for (let j = 0; j < w * h * 4; j += 4) { const r = [0, 1, 2].map(k => Math.min(1, od[j + k] / s[k])), m = Math.min(...r), a = m > .9 ? 0 : Math.min(1, (.9 - m) / .12); for (let k = 0; k < 3; k++) nd.data[j + k] *= 1 - a * (1 - r[k]) }
+  g.putImageData(nd, X, Y); document.title = 'listo';
+})();
+</script>

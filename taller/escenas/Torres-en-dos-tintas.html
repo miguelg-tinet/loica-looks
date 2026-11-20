@@ -1,0 +1,138 @@
+<!doctype html><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<canvas id="c" width="3840" height="2160"></canvas>
+<script>
+const W = 3840, H = 2160;
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R = rng(20261120);
+function layer(){const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,W,H);return g}
+const gray = d => {const v=Math.round(Math.max(0,Math.min(1,d))*255);return `rgb(${v},${v},${v})`};
+function poly(g,pts,d){g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();if(d!==undefined){g.fillStyle=gray(d);g.fill()}}
+function lerpLine(ctrl,x){for(let i=1;i<ctrl.length;i++){if(x<=ctrl[i][0]){const a=ctrl[i-1],b=ctrl[i];return a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0])}}return ctrl[ctrl.length-1][1]}
+function ridge(ctrl,amp,step,seed){const r=rng(seed),pts=[];let x=0;while(x<W+step){pts.push([x,lerpLine(ctrl,Math.min(x,W))+(r()-.5)*amp*(r()<.25?2.2:1)]);x+=step*(.45+r()*1.1)}return pts}
+function lowNoise(cols,rows,seed){const r=rng(seed),s=document.createElement('canvas');s.width=cols;s.height=rows;const sg=s.getContext('2d'),im=sg.createImageData(cols,rows);for(let i=0;i<cols*rows;i++){const v=r()*255;im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v;im.data[i*4+3]=255}sg.putImageData(im,0,0);const g=layer();g.imageSmoothingQuality='high';g.drawImage(s,0,0,W,H);return g.getImageData(0,0,W,H).data}
+
+// ── Geometría ────────────────────────────────────────────────────────────────
+const SUN = {x:2990,y:960,r:580}, LAKE = 1712;
+const S = 1.35, X0 = SUN.x-440*S, Y0 = 540-70*S;
+const T = p => [X0+p[0]*S, Y0+p[1]*S];
+// Siluetas tomadas de la vista clásica desde la base: Sur (izq.), Central y Norte (der., cumbre doble).
+const TOWERS = [
+  { out:[[20,640],[60,545],[95,472],[118,400],[128,332],[140,286],[158,256],[176,243],[190,245],[204,262],[214,300],[231,350],[250,394],[284,414],[304,436],[312,470],[303,520],[312,640]],
+    ridge:[[190,245],[204,300],[220,368],[238,410],[258,440],[266,520],[272,640]] },
+  { out:[[298,640],[311,500],[324,400],[337,300],[349,216],[361,166],[383,126],[397,101],[417,81],[435,70],[449,74],[461,92],[470,121],[487,166],[498,216],[511,270],[521,330],[527,420],[533,640]],
+    ridge:[[441,71],[436,130],[429,190],[425,300],[429,420],[432,640]] },
+  { out:[[519,640],[528,420],[536,330],[548,260],[562,200],[576,151],[586,133],[598,131],[606,142],[618,157],[634,146],[655,136],[676,126],[694,128],[708,140],[718,160],[738,215],[762,280],[790,340],[812,400],[822,470],[830,640]],
+    ridge:[[700,129],[712,230],[730,330],[750,450],[762,640]] }
+];
+const FRONT = [[0,1432],[600,1412],[1300,1402],[1900,1372],[2250,1300],[2480,1232],[2650,1196],[2900,1180],[3300,1188],[3600,1166],[3840,1136]];
+const BACK  = [[0,1392],[450,1402],[700,1368],[1200,1346],[1700,1330],[2100,1262],[2400,1190],[3840,1090]];
+
+// ── Tinta azul ───────────────────────────────────────────────────────────────
+const B = layer(), SK = layer();
+{ // cielo: trama que crece hacia la esquina superior derecha
+  const g=SK.createRadialGradient(W+300,-350,200,W+300,-350,3000);
+  g.addColorStop(0,gray(.6));g.addColorStop(.4,gray(.3));g.addColorStop(.72,gray(.09));g.addColorStop(.9,gray(0));
+  SK.fillStyle=g;SK.fillRect(0,0,W,LAKE);
+}
+function drawTowers(g,mode){ // ink: tinta azul · mask: silueta · lit: cara iluminada (para aclarar el rosa)
+  TOWERS.forEach((t,ti)=>{
+    const out=t.out.map(T), rd=t.ridge.map(T);
+    if(mode==="mask"){poly(g,out,1);return}
+    const shadow=[...rd,[W,rd[rd.length-1][1]],[W,rd[0][1]-40],[rd[0][0],rd[0][1]-40]];
+    g.save();poly(g,out);g.clip();
+    if(mode==="lit"){g.fillStyle=gray(1);g.fillRect(0,0,W,H);poly(g,shadow,0);g.restore();return}
+    g.fillStyle=gray(.5);g.fillRect(0,0,W,H);
+    const r=rng(77+ti*13), xs=out.map(p=>p[0]), x1=Math.min(...xs), x2=Math.max(...xs);
+    for(let i=0;i<34;i++){ // fisuras verticales del granito
+      const x=x1+r()*(x2-x1), y=Y0+(110+r()*380)*S, len=(50+r()*240)*S*(r()<.2?1.6:1), w=2+r()*r()*9, lean=(r()-.5)*.05;
+      g.strokeStyle=gray(.97);g.lineWidth=w;
+      g.beginPath();g.moveTo(x,y);g.lineTo(x+lean*len+(r()-.5)*6,y+len*.5);g.lineTo(x+lean*len,y+len);g.stroke();
+    }
+    poly(g,shadow,1);
+    for(let i=0;i<5;i++){const x=rd[1][0]+16+r()*60,y=Y0+(240+r()*260)*S,len=(40+r()*110)*S;g.strokeStyle=gray(.55);g.lineWidth=2+r()*3;g.beginPath();g.moveTo(x,y);g.lineTo(x+(r()-.5)*8,y+len);g.stroke()}
+    g.restore();
+  });
+}
+const backPts=ridge(BACK,46,70,5), frontPts=ridge(FRONT,34,58,9);
+poly(B,[...backPts,[W,LAKE],[0,LAKE]],.42);
+drawTowers(B,'ink');
+// faldeo que tapa la base de las torres
+const APRON=[[2250,1300],[2380,1262],[2440,1236],[2520,1244],[2600,1206],[2680,1222],[2770,1188],[2850,1204],[2930,1172],[3010,1196],[3090,1176],[3170,1200],[3260,1178],[3350,1202],[3440,1184],[3530,1206],[3620,1176],[3840,1150],[3840,1400],[2250,1400]];
+poly(B,APRON,.74);
+poly(B,[...frontPts,[W,LAKE],[0,LAKE]],.66);
+{ // base más densa hacia la orilla
+  const g=B.createLinearGradient(0,1500,0,LAKE);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(1,"rgba(255,255,255,.3)");
+  B.save();poly(B,[...frontPts,[W,LAKE],[0,LAKE]]);B.clip();B.fillStyle=g;B.fillRect(0,1500,W,LAKE-1500);B.restore();
+}
+
+// ── Tinta rosa ───────────────────────────────────────────────────────────────
+const P = layer();
+P.fillStyle=gray(.82);P.beginPath();P.arc(SUN.x,SUN.y,SUN.r,0,7);P.fill();
+{const L=layer();drawTowers(L,"lit");P.globalCompositeOperation="multiply";const L2=layer();L2.fillStyle="#fff";L2.fillRect(0,0,W,H);L2.globalCompositeOperation="destination-out";L2.drawImage(L.canvas,0,0);
+ /* aclara el rosa dentro de las caras iluminadas */
+ const li=L.getImageData(0,0,W,H),pi=P.getImageData(0,0,W,H);for(let i=0;i<W*H*4;i+=4){if(li.data[i]>0){const k=1-.72*li.data[i]/255;pi.data[i]*=k;pi.data[i+1]*=k;pi.data[i+2]*=k}}P.globalCompositeOperation="source-over";P.putImageData(pi,0,0)}
+// neveros: rosa aclarado, sin azul
+const snowR=rng(404);
+function sliver(cx,cy,w,h){const k=snowR(),m=snowR();return [[cx-w*.5,cy+h*(.2+.3*m)],[cx-w*(.25*k),cy-h*.5],[cx+w*.5,cy+h*(.1*k)],[cx+w*(.1+.2*m),cy+h*.5],[cx-w*.1,cy+h*(.15+.2*k)]]}
+const SNOW=[[2500,1296,230,40],[2760,1262,150,34],[2690,1352,300,48],[3020,1270,260,44],[2930,1338,130,30],[3300,1262,170,36],[3420,1322,280,46],[3660,1250,200,38],[3770,1318,150,30],[2330,1372,210,36],[2090,1392,130,26],[3160,1352,110,26]];
+SNOW.forEach(s=>{const p=sliver(...s);poly(B,p,.05);poly(P,p,.55)});
+// máscaras para el reflejo
+const M = layer(); drawTowers(M,'mask');
+const bD=B.getImageData(0,0,W,H).data, pD=P.getImageData(0,0,W,H).data, mD=M.getImageData(0,0,W,H).data;
+const skD=SK.getImageData(0,0,W,H).data, n1=lowNoise(48,27,1), n2=lowNoise(240,135,2), n3=lowNoise(12,7,3);
+
+// ── Lago: franjas con el reflejo del sol y las torres ────────────────────────
+const dB=new Float32Array(W*H), dP=new Float32Array(W*H);
+for(let i=0;i<W*H;i++){dB[i]=bD[i*4]/255;dP[i]=pD[i*4]/255}
+{ const r=rng(31), PER=42; let y=LAKE, k=0;
+  while(y<H){
+    const per=PER*(1+k*.012), band=per*(.22+.3*r()), jx=Math.round((r()-.5)*70), gap=r();
+    for(let yy=Math.floor(y);yy<Math.min(H,y+per);yy++){
+      const inLine=yy-y<4, inBand=yy-y<band+4;
+      const sy=Math.round(LAKE-(yy-LAKE)*2.45-10);
+      for(let x=0;x<W;x++){
+        const i=yy*W+x; let b=inLine?.9:inBand?.2:.0, p=0;
+        if(sy>=0){
+          const sx=Math.min(W-1,Math.max(0,x+jx)), si=sy*W+sx;
+          const win=Math.max(0,1-Math.abs(x-SUN.x)/900);
+          const brk=n2[(yy*W+((x*3)%W))*4]/255; // cortes a lo largo de la franja
+          const dx=sx-SUN.x, dy=sy-SUN.y, inSun=dx*dx+dy*dy<SUN.r*SUN.r;
+          if(inBand&&mD[si*4]>128&&brk>.3) b=Math.max(b,.92);
+          else if(inBand&&inSun&&brk>.36&&gap>.25){p=.82;b=inLine?.95:.08}
+          else if(inBand&&win>0&&bD[si*4]>150&&brk>.42) b=Math.max(b,.7);
+        }
+        dB[i]=b;dP[i]=p;
+      }
+    }
+    y+=per;k++;
+  }
+}
+
+// ── Trama, registro y papel ─────────────────────────────────────────────────
+const out=document.getElementById('c').getContext('2d'), img=out.createImageData(W,H), o=img.data;
+const PITCH=15, aB=15*Math.PI/180, aP=72*Math.PI/180;
+const cB=Math.cos(aB),sB=Math.sin(aB),cP=Math.cos(aP),sP=Math.sin(aP);
+const OFFX=7, OFFY=5; // registro corrido del rosa
+function dot(x,y,c,s,d){ if(d<=.004)return 0; const u=(x*c+y*s)/PITCH, v=(-x*s+y*c)/PITCH, fu=u-Math.floor(u)-.5, fv=v-Math.floor(v)-.5; const dist=Math.sqrt(fu*fu+fv*fv), rad=.735*Math.sqrt(d); const a=(rad-dist)*PITCH/1.3+.5; return a<=0?0:a>=1?1:a }
+const INK_B=[.17,.44,.71], INK_P=[.96,.25,.62];
+let h=1234567;
+for(let y=0;y<H;y++){for(let x=0;x<W;x++){
+  const i=y*W+x, j=i*4;
+  h=Math.imul(h^(h>>>15),2246822519)+i|0; const rnd=((h>>>8)&0xffff)/65535;
+  const m1=n1[j]/255, m2=n2[j]/255, m3=n3[j]/255;
+  // nubes: huecos suaves en la trama del cielo
+  let db=dB[i]; if(y<LAKE){const sk=skD[j]/255*Math.max(.3,Math.min(1.15,(m1*.6+m3*.7-.3)*2.2)); if(sk>db) db=sk}
+  const px=Math.min(W-1,Math.max(0,x-OFFX)), py=Math.min(H-1,Math.max(0,y-OFFY));
+  const dp=dP[py*W+px];
+  let kb=dot(x,y,cB,sB,db), kp=dot(x,y,cP,sP,dp);
+  // tinta irregular: moteado y poros
+  const wear=.86+.14*m2; kb*=wear*(rnd>.965?.45:1); kp*=(.88+.12*m1)*(rnd<.03?.5:1);
+  let r=238-10*m3+6*(m1-.5), g=233-10*m3+6*(m1-.5), b=219-13*m3+6*(m1-.5);
+  const gr=(rnd-.5)*9; r+=gr;g+=gr;b+=gr;
+  r*=1-kp*(1-INK_P[0]);g*=1-kp*(1-INK_P[1]);b*=1-kp*(1-INK_P[2]);
+  r*=1-kb*(1-INK_B[0]);g*=1-kb*(1-INK_B[1]);b*=1-kb*(1-INK_B[2]);
+  o[j]=r;o[j+1]=g;o[j+2]=b;o[j+3]=255;
+}}
+out.putImageData(img,0,0);
+document.title='listo';
+</script>

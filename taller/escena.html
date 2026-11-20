@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<canvas id="c" width="3840" height="2160"></canvas>
+<script src="riso.js"></script>
+<script>
+// Uso: escena.html?e=Nombre  →  carga escenas/Nombre.js y la imprime.
+const s = document.createElement('script');
+s.src = 'escenas/' + new URLSearchParams(location.search).get('e') + '.js';
+s.onload = () => render(window.RENDER || {});
+document.body.appendChild(s);
+</script>
